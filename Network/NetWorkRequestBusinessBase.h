@@ -25,7 +25,7 @@ public:
     }
 
 public:
-    virtual void  jsonParse(QJsonDocument  document) = 0;
+    virtual void  jsonParse(QByteArray  document) = 0;
 };
 
 
@@ -39,20 +39,37 @@ public:
 
 
 protected:
-    virtual void jsonParse(QJsonDocument  document) = 0;
+    virtual void jsonParse(QByteArray  document) = 0;
 
 
 
 protected:
-    void dopostRequest(NetworkRequest *request, QString target, QNetworkAccessManager * network, jsonParseBase * PjsonParse , bool isSynchronous = false);
+    /**
+     * @brief dopostRequest Http协议Post请求
+     * @param request 请求的封装网络类
+     * @param target 请求的目标url
+     * @param network 请求的网络管理类，外面传入
+     * @param PjsonParse 请求的解析Json类(抽象类)
+     * @param isSynchronous 是否同步等待请求，默认异步请求
+     */
+    void dopostRequest(NetworkRequest *request, QString targetUrl, QNetworkAccessManager * network, jsonParseBase * PjsonParse , bool isSynchronous = false);
 
+    /**
+     * @brief doSoapRequest Soap协议请求
+     * @param request 请求的封装网络类
+     * @param targetUrl  请求调用的目标url
+     * @param network 请求的网络管理类，外面传入
+     * @param PjsonParse 请求的解析Json类(抽象类)
+     * @param isSynchronous 是否同步等待请求，默认异步请求
+     */
+    void doSoapRequest(NetworkRequest *request, QString targetUrl, QNetworkAccessManager * network, jsonParseBase * PjsonParse , bool isSynchronous = false);
 private:
     void cleanRelpy();
 signals:
 
 public slots:
 
-    void doFinish_slot();
+    void onFinish_slot();
     void doError_slot(QNetworkReply::NetworkError);
 private:
 

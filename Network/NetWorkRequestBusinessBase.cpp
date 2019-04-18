@@ -22,17 +22,36 @@ NetWorkRequestBusinessBase::~NetWorkRequestBusinessBase()
 }
 
 
-void NetWorkRequestBusinessBase::dopostRequest(NetworkRequest *request, QString target, QNetworkAccessManager * network,  jsonParseBase *PjsonParse, bool isSynchronous)
+void NetWorkRequestBusinessBase::dopostRequest(NetworkRequest *request, QString targetUrl, QNetworkAccessManager * network,  jsonParseBase *PjsonParse, bool isSynchronous)
 {
+    QEventLoop loop;
 
     cleanRelpy();
     m_JsonParseBase = PjsonParse;
 
-    m_Reply = request->doPostRequest(target,network);
-    QObject::connect(m_Reply, &QNetworkReply::finished, this, &NetWorkRequestBusinessBase::doFinish_slot);
+    m_Reply = request->doPostRequest(targetUrl,network);
+    QObject::connect(m_Reply, &QNetworkReply::finished, this, &NetWorkRequestBusinessBase::onFinish_slot);
     QObject::connect(m_Reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(doError_slot(QNetworkReply::NetworkError)));
 
+
+    if(isSynchronous) {
+        QObject::connect(m_Reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        loop.exec();
+    }
+
+}
+
+void NetWorkRequestBusinessBase::doSoapRequest(NetworkRequest *request, QString targetUrl, QNetworkAccessManager *network, jsonParseBase *PjsonParse, bool isSynchronous)
+{
     QEventLoop loop;
+
+    cleanRelpy();
+    m_JsonParseBase = PjsonParse;
+    m_Reply = request->doSoapRequest(targetUrl,network);
+
+    connect(m_Reply, &QNetworkReply::finished, this, &NetWorkRequestBusinessBase::onFinish_slot);
+    QObject::connect(m_Reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(doError_slot(QNetworkReply::NetworkError)));
+
 
     if(isSynchronous) {
         QObject::connect(m_Reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -50,7 +69,7 @@ void NetWorkRequestBusinessBase::cleanRelpy()
     }
 }
 
-void NetWorkRequestBusinessBase::doFinish_slot()
+void NetWorkRequestBusinessBase::onFinish_slot()
 {
     QByteArray jsonData = m_Reply->readAll();
 
@@ -58,30 +77,30 @@ void NetWorkRequestBusinessBase::doFinish_slot()
     qInfo() << "url = " << m_Reply->url().toString();
     qInfo() << "jsonData"<<jsonData;
 
-    QObject::disconnect(m_Reply, &QNetworkReply::finished, this, &NetWorkRequestBusinessBase::doFinish_slot);
+    QObject::disconnect(m_Reply, &QNetworkReply::finished, this, &NetWorkRequestBusinessBase::onFinish_slot);
 
     cleanRelpy();
 
-    QJsonParseError jsonError;
-    QJsonDocument document = QJsonDocument::fromJson(jsonData, &jsonError);
+    //    QJsonParseError jsonError;
+    //    QJsonDocument document = QJsonDocument::fromJson(jsonData, &jsonError);
 
-    if(document.isNull() || (jsonError.error != QJsonParseError::NoError))
-    {
-        qCritical()<<"jsonError:"<<jsonError.error;
-        return;
-    }
+    //    if(document.isNull() || (jsonError.error != QJsonParseError::NoError))
+    //    {
+    //        qCritical()<<"jsonError:"<<jsonError.error;
+    //        return;
+    //    }
 
 
     if(m_JsonParseBase)
     {
-          m_JsonParseBase->jsonParse(document);
+        m_JsonParseBase->jsonParse(jsonData);
     }
 
 }
 
 void NetWorkRequestBusinessBase::doError_slot(QNetworkReply::NetworkError error)
 {
-    qInfo()<<"error = "<<error;
+    qInfo()<<"Network Requst Error = "<<error;
 }
 
 jsonParseBase::jsonParseBase(QObject *parent): QObject(parent)

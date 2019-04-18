@@ -5,6 +5,7 @@
 #include <QUrl>
 #include <QDebug>
 #include <QNetworkAccessManager>
+#include <QXmlStreamWriter>
 
 
 NetworkRequest::NetworkRequest(QObject *parent) : QObject(parent)
@@ -29,6 +30,17 @@ void NetworkRequest::addKeyValue(const QString &key, const QStringList &valuelis
         jsonArray.append(value);
     }
     m_jsonObject.insert(key, jsonArray);
+}
+
+void NetworkRequest::addSoapKeyValue(const QString &key, const QString &value)
+{
+    m_SoapMap.insert(key, value);
+}
+
+void NetworkRequest::setSoapMethodServer(const QString &methodName, const QString &serverNameSpaceUrl)
+{
+    m_SoapMethonName = methodName;
+    m_SoapServerNameSpaceUrl = serverNameSpaceUrl;
 }
 
 QNetworkReply *NetworkRequest::doPostRequest(const QString &targetUrl,  QNetworkAccessManager *networkManager)
@@ -156,4 +168,63 @@ QNetworkReply *NetworkRequest::uploadFile(const QString &Filepath, QString targe
     multiPart->setParent(reply);
 
     return reply;
+}
+
+QNetworkReply *NetworkRequest::doSoapRequest(const QString &targetUrl, QNetworkAccessManager *networkManager)
+{
+    QNetworkRequest networkRequest;
+    networkRequest.setUrl(QUrl(targetUrl));
+
+    return this->doSoapRequest(networkRequest, networkManager);
+}
+
+QNetworkReply *NetworkRequest::doSoapRequest(const QNetworkRequest &request, QNetworkAccessManager *networkManager)
+{
+    QNetworkRequest networkRequestBak = request;
+    networkRequestBak.setHeader(QNetworkRequest::ContentTypeHeader,("text/xml;charst=utf-8"));
+    QByteArray soapXml = writeSoapXML();
+
+    return networkManager->post(networkRequestBak, soapXml);
+}
+
+QByteArray NetworkRequest::writeSoapXML()
+{
+    QByteArray byteArray;
+    QXmlStreamWriter xmlWrite(&byteArray);
+
+    QString namespaceUri = XML_SOAP_HTTP;
+    QString prefixStr = "soapenv";
+    QString prefixStrWeb = "web";
+
+    //自动格式化
+    xmlWrite.setAutoFormatting(true);
+    xmlWrite.writeStartDocument("1.0", true);
+    xmlWrite.writeNamespace(namespaceUri,prefixStr);
+
+    //前缀XML声明
+    xmlWrite.writeStartElement(namespaceUri,"Envelope");
+    xmlWrite.writeNamespace(m_SoapServerNameSpaceUrl, prefixStrWeb);
+    xmlWrite.writeStartElement(namespaceUri, "Header");
+    xmlWrite.writeStartElement(namespaceUri, "Body");
+    xmlWrite.writeStartElement(m_SoapServerNameSpaceUrl, m_SoapMethonName);
+
+    QStringList keyString = m_SoapMap.keys();
+
+    //循环写入参数到xml
+    for(auto key : keyString)
+    {
+        //参数项的声明
+        xmlWrite.writeComment("Optional");
+        //写入参数文本
+        xmlWrite.writeTextElement(key, m_SoapMap.value(key));
+    }
+
+    xmlWrite.writeEndElement(); //结束m_SoapMethonName方法名称标签
+    xmlWrite.writeEndElement(); //结束Header标签
+    xmlWrite.writeEndElement();  //结束Body标签
+    xmlWrite.writeEndElement();  //结束Envelope标签
+    xmlWrite.writeEndDocument(); //结束文档
+
+    qInfo()<<"生成的Soap Xml"<<byteArray;
+    return byteArray;
 }
