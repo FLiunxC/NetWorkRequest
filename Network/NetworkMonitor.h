@@ -1,4 +1,4 @@
-#ifndef NETWORKMONITOR_H
+﻿#ifndef NETWORKMONITOR_H
 #define NETWORKMONITOR_H
 
 #include <QObject>

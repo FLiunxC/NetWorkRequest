@@ -1,4 +1,4 @@
-#ifndef NETWORKREQUESTBUSINESSBASE_H
+﻿#ifndef NETWORKREQUESTBUSINESSBASE_H
 #define NETWORKREQUESTBUSINESSBASE_H
 
 #include <QObject>
@@ -21,11 +21,12 @@ public:
 
     virtual ~jsonParseBase()
     {
-        qInfo()<<"jsonParseBase"<<"函数进入";
+        qInfo()<<"jsonParseBase"<<"析构函数进入";
     }
 
 public:
-    virtual void  jsonParse(QByteArray  document) = 0;
+    //QByteArray是未做解析的json数据
+    virtual void  jsonParse(QByteArray) = 0;
 };
 
 

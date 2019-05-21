@@ -1,10 +1,10 @@
-#include "NetworkRequest.h"
+﻿#include "NetworkRequest.h"
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonValue>
 #include <QUrl>
 #include <QDebug>
-#include <QNetworkAccessManager>
+#include <QNetworkInterface>
 #include <QXmlStreamWriter>
 
 
@@ -51,6 +51,13 @@ QNetworkReply *NetworkRequest::doPostRequest(const QString &targetUrl,  QNetwork
 //    if(!url.endsWith("?")) {
 //        url = url +"?";
 //    }
+    if(url.startsWith("https"))
+    {
+        m_httpsRequest = true;
+    }
+    else {
+        m_httpsRequest = false;
+    }
     qInfo()<<"post URL = "<<url;
     request.setUrl(QUrl(url));
 
@@ -62,6 +69,14 @@ QNetworkReply* NetworkRequest::doPostRequest(const QNetworkRequest &request,  QN
     QByteArray PostData;
     QNetworkRequest req = request;
 
+    if(m_httpsRequest)
+    {
+        QSslConfiguration config;
+        QSslConfiguration conf = request.sslConfiguration();
+        conf.setPeerVerifyMode(QSslSocket::VerifyNone);
+        conf.setProtocol(QSsl::TlsV1SslV3);
+        req.setSslConfiguration(conf);
+    }
 #ifdef JSON
     req.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/json"));
 //    req.setRawHeader("Content-Type","application/json");
@@ -95,6 +110,11 @@ QNetworkReply *NetworkRequest::doGetRequest(const QString &targetUrl, QNetworkAc
 
     if(!url.endsWith("?")) {
         url = url +"?";
+    }
+
+    if(url.startsWith("https"))
+    {
+        m_httpsRequest = true;
     }
 
     //get参数进行赋值
@@ -132,7 +152,14 @@ QNetworkReply *NetworkRequest::doGetRequest(const QString &targetUrl, QNetworkAc
 QNetworkReply *NetworkRequest::doGetRequest(const QNetworkRequest &request,  QNetworkAccessManager *networkManager)
 {
     QNetworkRequest request2 = request;
-
+    if(m_httpsRequest)
+    {
+        QSslConfiguration config;
+        QSslConfiguration conf = request.sslConfiguration();
+        conf.setPeerVerifyMode(QSslSocket::VerifyNone);
+        conf.setProtocol(QSsl::TlsV1SslV3);
+        request2.setSslConfiguration(conf);
+    }
    // request2.setRawHeader("Content-Type","application/json");
 #ifdef JSON
     request2.setRawHeader("Content-Type","application/json");
@@ -170,9 +197,38 @@ QNetworkReply *NetworkRequest::uploadFile(const QString &Filepath, QString targe
     return reply;
 }
 
+QString NetworkRequest::getIpv4Addre()
+{
+
+        QList<QHostAddress> list =QNetworkInterface::allAddresses();
+        foreach (QHostAddress address, list)
+        {
+           if(address.protocol() ==QAbstractSocket::IPv4Protocol)
+               //我们使用IPv4地址
+               return address.toString();
+        }
+
+        return "0";
+
+}
+
 QNetworkReply *NetworkRequest::doSoapRequest(const QString &targetUrl, QNetworkAccessManager *networkManager)
 {
+    if(targetUrl.startsWith("https"))
+    {
+        m_httpsRequest = true;
+    }
     QNetworkRequest networkRequest;
+    // 发送https请求前准备工作;
+    if(m_httpsRequest)
+    {
+        QSslConfiguration config;
+        QSslConfiguration conf = networkRequest.sslConfiguration();
+        conf.setPeerVerifyMode(QSslSocket::VerifyNone);
+        conf.setProtocol(QSsl::TlsV1SslV3);
+        networkRequest.setSslConfiguration(conf);
+    }
+
     networkRequest.setUrl(QUrl(targetUrl));
 
     return this->doSoapRequest(networkRequest, networkManager);

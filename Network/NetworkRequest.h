@@ -1,4 +1,4 @@
-#ifndef NETWORKREQUEST_H
+﻿#ifndef NETWORKREQUEST_H
 #define NETWORKREQUEST_H
 
 /**
@@ -91,6 +91,8 @@ public:
    //下載文件未實現
 
 
+   QString getIpv4Addre();
+
    /**
     * @brief doSoapRequest Soap协议请求
     * @param targetUrl 请求的目标url
@@ -127,6 +129,8 @@ private:
    QMultiMapString m_SoapMap; //存储soapkey和value的值
    QString m_SoapServerNameSpaceUrl; //存储soap的xml中的targetNamespace标签地址不是请求url
    QString m_SoapMethonName; //存储soap中的方法
+
+   bool m_httpsRequest = false; //是否是https请求
 };
 
 #endif // NETWORKREQUEST_H
